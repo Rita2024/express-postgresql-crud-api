@@ -7,6 +7,7 @@ const crypto = require('crypto');
 // In-memory password reset tokens for demo (use DB in production)
 const resetTokens = {};
 
+// --- LOGIN CONTROLLER ---
 exports.login = async (req, res, next) => {
   try {
     const errors = validationResult(req);
@@ -19,8 +20,17 @@ exports.login = async (req, res, next) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const accessToken = tokenService.generateAccessToken(user);
-    const refreshToken = await tokenService.generateRefreshToken(user);
+    // --- Ensure the access token includes the user role! ---
+    const accessToken = tokenService.generateAccessToken({
+      id: user.id,
+      role: user.role
+    });
+
+    const refreshToken = await tokenService.generateRefreshToken({
+      id: user.id,
+      role: user.role
+    });
+
     res.json({ accessToken, refreshToken });
   } catch (err) {
     next(err);
@@ -33,8 +43,12 @@ exports.refresh = async (req, res, next) => {
     if (!refreshToken) return res.status(400).json({ error: 'No refresh token provided' });
     const payload = await tokenService.verifyRefreshToken(refreshToken);
     if (!payload) return res.status(401).json({ error: 'Invalid refresh token' });
-    const user = await userService.getUserById(payload.userId);
-    const accessToken = tokenService.generateAccessToken(user);
+    const user = await userService.getUserById(payload.id || payload.userId);
+    // Make sure the new access token includes the latest role
+    const accessToken = tokenService.generateAccessToken({
+      id: user.id,
+      role: user.role
+    });
     res.json({ accessToken });
   } catch (err) {
     next(err);

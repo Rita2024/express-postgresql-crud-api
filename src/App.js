@@ -27,7 +27,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/auth', authRouter);
 
 // Protected routes
-app.use('/users', authMiddleware, usersRouter);
+app.use('/users', usersRouter);
 
 app.use(errorHandler);
 

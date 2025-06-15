@@ -28,12 +28,15 @@ exports.createUser = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { email } = req.body;
+    const { email, role } = req.body;
     const exists = await userService.findByEmail(email);
     if (exists) return res.status(409).json({ error: 'Email already registered' });
 
-    // Only admins can create admin users
-    if (req.body.role && req.body.role === 'admin') {
+    // Count existing users
+    const users = await userService.getAllUsers();
+
+    // Only admins can create admin users, except for the very first user
+    if (role === 'admin' && users.length > 0) {
       if (!req.user || req.user.role !== 'admin') {
         return res.status(403).json({ error: 'Only admins can assign admin role.' });
       }
